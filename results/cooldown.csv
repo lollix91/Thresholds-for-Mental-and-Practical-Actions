@@ -1,0 +1,9 @@
+instance,delta,policies,max_ticks,mean_ticks
+case study,0,15.0,0.0,0.0
+case study,1,15.0,2.0,0.8
+case study,2,15.0,4.0,1.6
+case study,3,15.0,6.0,2.4
+random (40),0,19.85,0.0,0.0
+random (40),1,19.85,1.2,0.4776041666666666
+random (40),2,19.85,2.4,0.9552083333333332
+random (40),3,19.85,3.6,1.4328125

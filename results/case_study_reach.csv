@@ -1,0 +1,9 @@
+config,reach,space,floor,wf,lockout,floor_path,seconds
+none,120,250,True,True,False,rho4,0.0004
+G1,60,250,True,False,False,rho4,0.0002
+G2,15,250,False,False,False,,0.0
+G3,120,250,True,True,False,rho4,0.0003
+G1+G2,15,250,False,False,False,,0.0
+G1+G3,60,250,True,False,False,rho4,0.0002
+G2+G3,15,250,False,False,False,,0.0
+G1+G2+G3,15,250,False,False,False,,0.0

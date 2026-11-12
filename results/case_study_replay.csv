@@ -1,0 +1,10 @@
+step,action,outcome,detail
+0p,block_ip decision,a:allow r:allow,
+1,rho1 by a,applied,tauA(block_ip)=h
+1p,block_ip decision,a:delegate r:allow,
+2,rho2 by a,applied,tauS(p)=vh
+3,rho3 by a,review,pending
+4,rho3 validated by r,applied,tauS(p)=h
+5a,rho4 by a,review,pending
+5b,rho4 validated by r,rejected,guards failed: G2
+6,rho5 by r,rejected,guards failed: G2
