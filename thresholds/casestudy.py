@@ -43,6 +43,13 @@ def soc_instance() -> Instance:
 
 TRACES = frozenset({"rho3", "rho4", "rho5"})
 
+TRUST_SRC = {("s", "p"): H}  # T^S(K, s, p)
+
+
+def source_ok(pol: Policy, source: str = "s", content: str = "p") -> bool:
+    """source_OK: T^S(K, source, content) >= tau^S(content) in the current policy."""
+    return TRUST_SRC[(source, content)] >= pol.theta[f"S:{content}"]
+
 
 def replay() -> List[Tuple[str, str, str, str]]:
     """Replay the six steps of the case study; returns (step, action, outcome, detail)."""
@@ -56,7 +63,11 @@ def replay() -> List[Tuple[str, str, str, str]]:
         dr = decide_phys(inst, pol, "r", "block_ip")
         rows.append((tag, "block_ip decision", f"a:{da} r:{dr}", ""))
 
+    def src_row(tag):
+        rows.append((tag, "source_OK(s,p)", str(source_ok(pol)), f"tauS(p)={NAMES[pol.theta['S:p']]}"))
+
     phys_row("0p")
+    src_row("0s")
     res = propose(inst, pol, "a", "rho1", TRACES)
     pol = res.policy
     rows.append(("1", "rho1 by a", res.outcome, f"tauA(block_ip)={NAMES[pol.theta['A:block_ip']]}"))
@@ -64,11 +75,13 @@ def replay() -> List[Tuple[str, str, str, str]]:
     res = propose(inst, pol, "a", "rho2", TRACES)
     pol = res.policy
     rows.append(("2", "rho2 by a", res.outcome, f"tauS(p)={NAMES[pol.theta['S:p']]}"))
+    src_row("2s")
     res = propose(inst, pol, "a", "rho3", TRACES)
     rows.append(("3", "rho3 by a", res.outcome, res.detail))
     res = validate(inst, pol, "r", "rho3", TRACES)
     pol = res.policy
     rows.append(("4", "rho3 validated by r", res.outcome, f"tauS(p)={NAMES[pol.theta['S:p']]}"))
+    src_row("4s")
     res = propose(inst, pol, "a", "rho4", TRACES)
     rows.append(("5a", "rho4 by a", res.outcome, res.detail))
     res = validate(inst, pol, "r", "rho4", TRACES)

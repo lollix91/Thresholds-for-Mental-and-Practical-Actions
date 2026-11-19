@@ -38,7 +38,7 @@ Python 3.10+ and the packages in `requirements.txt` (`pip install -r requirement
 python -m thresholds.casestudy                      # replay of the case study (Table of the paper)
 python -m unittest discover -s tests -v             # property tests and implementation agreement
 python experiments/run_experiments.py --quick       # small run (a few seconds)
-python experiments/run_experiments.py               # full run used in the paper (a few minutes)
+python experiments/run_experiments.py               # full run used in the paper (about 9 minutes)
 ```
 
 ## Model in one paragraph
@@ -53,5 +53,19 @@ the vector of their values plus a bitmask for the critical set.
 
 ## Results
 
-Generated files in `results/`: `case_study_replay.csv`, `case_study_reach.csv`, `ablation_summary.csv`,
-`scalability_summary.csv`, `large_summary.csv`, `cooldown.csv`, `scalability.pdf`.
+Generated files in `results/`: `case_study_replay.csv`, `case_study_reach.csv`, `ablation_summary.csv`
+(and `ablation_raw.csv`), `scalability_summary.csv` (and `scalability_raw.csv`), `large_summary.csv`
+(and `large_raw.csv`), `cooldown.csv`, `scalability.pdf`/`.png`, plus the logs `run_log*.txt` and
+timings `time*.txt` of the full run.
+
+## Notes on the correspondence with the paper
+
+* A revision that would not change the policy (level out of range, promoting an already critical
+  action, demoting a non-critical one) is undefined and treated as inert, as in the paper.
+* The decision of a performer with trust in `(tau_B, tau_E)` is reported as `inert` (not enabled); the
+  paper's `m_decision` calls it `review`.
+* The random instances do not enforce `Loose ⊆ Phi_C` and the search ignores (G4); the evidence part of
+  the theorems is therefore checked on the case study only (`tests/test_properties.py::TestCaseStudy`).
+* The case study replay also checks `source_OK(s, p)` (`T^S(s,p) >= tau^S(p)`).
+* The case-study signature has no pairs of inverse revisions, so the reversibility theorem does not
+  apply to it (its reachable set is not strongly connected).

@@ -43,6 +43,19 @@ class TestCaseStudy(unittest.TestCase):
         self.assertIn("G2", rows["6"][3])
         self.assertEqual(rows["0p"][2], "a:allow r:allow")
         self.assertEqual(rows["1p"][2], "a:delegate r:allow")
+        self.assertEqual([rows[k][2] for k in ("0s", "2s", "4s")], ["True", "False", "True"])
+
+
+    def test_loosening_needs_trace(self):
+        """(G4): a loosening of a critical revision action is rejected without a justification trace."""
+        from thresholds.casestudy import TRACES
+        from thresholds.policy import validate
+        inst = soc_instance()
+        pol = initial_policy(inst)
+        res = validate(inst, pol, "r", "rho3", frozenset())
+        self.assertEqual(res.outcome, "rejected")
+        self.assertIn("G4", res.detail)
+        self.assertEqual(validate(inst, pol, "r", "rho3", TRACES).outcome, "applied")
 
 
 class TestCompiledAgainstReference(unittest.TestCase):
@@ -109,7 +122,12 @@ class TestTheorems(unittest.TestCase):
                         self.assertTrue(auto(t) <= auto(s))
 
     def test_no_unmediated_loosening(self):
-        """Every guarded transition that loosens is a loosening revision, stays above the floor, and is authorised."""
+        """Every guarded transition that loosens is a loosening revision, stays above the floor, and is authorised
+        (some agent reaches tau_A of the revision action in the pre-state).
+
+        The evidence guard (G4) and the review store are not part of the abstract relation, so the
+        evidence part of the theorem is checked on the case study (see TestCaseStudy) only.
+        """
         for seed in SEEDS:
             inst = small(seed)
             P = compile_instance(inst)
@@ -121,6 +139,9 @@ class TestTheorems(unittest.TestCase):
                     if lower:
                         self.assertLess(rv.d, 0)
                         self.assertFalse(violations(P, t))
+                        th = dict(zip(P.names, s[:-1]))
+                        ta = th.get(f"A:{name}", inst.theta0[f"A:{name}"])
+                        self.assertLessEqual(ta, inst.maxtrust(name))
 
     def test_bounded_drift(self):
         for seed in SEEDS:
@@ -193,12 +214,9 @@ class TestCooldown(unittest.TestCase):
                 best = reach_cooldown(P, delta)
                 self.assertEqual(set(best), base, f"seed {seed} delta {delta}")
                 for s, ticks in best.items():
-                    drift = max([abs(a - b) for a, b in zip(s[:-1], P.init[:-1])] + [bin(s[-1] ^ P.init[-1]).count("1") and 1])
-                    self.assertGreaterEqual(ticks, max(drift - 1, 0) * delta)
-
-
-if __name__ == "__main__":
-    unittest.main()
+                    d_thr = max([abs(a - b) for a, b in zip(s[:-1], P.init[:-1])], default=0)
+                    d_crit = 1 if s[-1] != P.init[-1] else 0  # a critical-set member changes by at most one revision
+                    self.assertGreaterEqual(ticks, (max(d_thr, d_crit) - 1) * delta if max(d_thr, d_crit) else 0)
 
 
 class TestTractableFragment(unittest.TestCase):

@@ -164,7 +164,12 @@ def ref_successors(inst: Instance, pol: Policy, guards: Iterable[str] = ("G1", "
 
 # ---- decisions and the proposal/review protocol ------------------------
 def decide(inst: Instance, pol: Policy, agent: str, rev_name: str) -> str:
-    """allow / review / block / inert for a proposal by ``agent``."""
+    """allow / review / block / inert for a proposal by ``agent``.
+
+    The paper's ``m_decision`` returns ``review`` for every trust value in (tau_B, tau_A); a
+    performer below tau_E is however not enabled (trusted enablement), so here that case is
+    reported explicitly as ``inert``.
+    """
     t = inst.trust[(agent, rev_name)]
     b, e, a = (pol.theta[f"{x}:{rev_name}"] for x in ("B", "E", "A"))
     if t <= b:

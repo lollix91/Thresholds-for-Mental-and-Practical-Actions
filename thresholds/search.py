@@ -170,7 +170,7 @@ class ReachResult:
         return max(self.depth.values())
 
 
-def reach(P: Problem, g1=True, g2=True, g3=True, max_states: int = 3_000_000) -> ReachResult:
+def reach(P: Problem, g1=True, g2=True, g3=True, max_states: int = 2_000_000) -> ReachResult:
     t0 = time.perf_counter()
     depth = {P.init: 0}
     parent: Dict[State, Tuple[Optional[State], Optional[str]]] = {P.init: (None, None)}

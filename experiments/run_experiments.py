@@ -1,7 +1,7 @@
 """Experiments of the paper: case study verification, guard ablation, scalability.
 
 Usage:  python experiments/run_experiments.py [--quick]
-Results (CSV, LaTeX tables, figures) are written to ``results/``.
+Results (CSV files and figures) are written to ``results/``.
 """
 from __future__ import annotations
 
