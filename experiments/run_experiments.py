@@ -174,6 +174,36 @@ def e5_cooldown(n: int = 40):
     return df
 
 
+def e6_evidence(n: int = 200, L=4, k_thr=4):
+    """Effect of the evidence guard (G4): fraction of loosening revisions with an available trace."""
+    import random
+    rows = []
+    for seed in range(n):
+        inst = generate(L=L, k_thr=k_thr, k_crit=1, n_phys=3, n_src=2, n_agents=3,
+                        p_meta=0.6, p_floor=0.6, seed=1000 + seed)
+        P = compile_instance(inst)
+        rng = random.Random(seed)
+        loose = [r.name for r in inst.revs if r.d < 0]
+        order = rng.sample(loose, len(loose))
+        for p_tr in (1.0, 0.5, 0.0):
+            traced = set(order[:round(p_tr * len(order))])
+            skip = frozenset(x for x in loose if x not in traced)
+            for gname, g in (("G1+G2+G3", (True, True, True)), ("none", (False, False, False))):
+                r = reach(P, *g, skip=skip)
+                rows.append(dict(seed=seed, traces=p_tr, guards=gname, reach=r.size,
+                                 G1=("G1" in r.first_bad), G2=("G2" in r.first_bad), G3=("G3" in r.first_bad)))
+    df = pd.DataFrame(rows)
+    df.to_csv(os.path.join(OUT, "evidence_raw.csv"), index=False)
+    agg = df.groupby(["guards", "traces"], sort=False).agg(
+        reach_mean=("reach", "mean"), pct_G1=("G1", "mean"), pct_G2=("G2", "mean"), pct_G3=("G3", "mean")).reset_index()
+    for c in ("pct_G1", "pct_G2", "pct_G3"):
+        agg[c] = (100 * agg[c]).round(1)
+    agg["reach_mean"] = agg["reach_mean"].round(1)
+    agg.to_csv(os.path.join(OUT, "evidence.csv"), index=False)
+    print(agg.to_string(index=False))
+    return agg
+
+
 def figures(agg):
     import matplotlib
     matplotlib.use("Agg")
@@ -202,9 +232,13 @@ def main():
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--only-large", action="store_true", help="run only the large-instance experiment")
     ap.add_argument("--only-cooldown", action="store_true", help="run only the cooldown experiment")
+    ap.add_argument("--only-evidence", action="store_true", help="run only the evidence-guard (G4) experiment")
     a = ap.parse_args()
     if a.only_cooldown:
         e5_cooldown()
+        return
+    if a.only_evidence:
+        e6_evidence()
         return
     if a.only_large:
         e4_large(4)
@@ -218,6 +252,7 @@ def main():
     if not a.quick:
         e4_large(4)
         e5_cooldown()
+    e6_evidence(40 if a.quick else 200)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ import itertools
 import time
 from collections import deque
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Dict, FrozenSet, Iterable, List, Optional, Sequence, Set, Tuple
 
 from .policy import Instance, initial_policy, is_safe, Policy
 
@@ -92,10 +92,17 @@ def compile_instance(inst: Instance) -> Problem:
                    floor, ceil, floor_mask, n)
 
 
-def successors(P: Problem, s: State, g1: bool = True, g2: bool = True, g3: bool = True):
-    """Yield (revision name, successor state) under the selected guards."""
+def successors(P: Problem, s: State, g1: bool = True, g2: bool = True, g3: bool = True,
+               skip: FrozenSet[str] = frozenset()):
+    """Yield (revision name, successor state) under the selected guards.
+
+    ``skip`` is the set of revision actions excluded by the evidence guard (G4), i.e. critical
+    revision actions for which no justification trace is available.
+    """
     vals, mask = s[:-1], s[-1]
     for r in P.revs:
+        if r.name in skip:
+            continue
         ta = vals[r.aref] if r.aref >= 0 else r.aconst
         if ta > r.maxtrust:
             continue
@@ -170,7 +177,8 @@ class ReachResult:
         return max(self.depth.values())
 
 
-def reach(P: Problem, g1=True, g2=True, g3=True, max_states: int = 2_000_000) -> ReachResult:
+def reach(P: Problem, g1=True, g2=True, g3=True, max_states: int = 2_000_000,
+          skip: FrozenSet[str] = frozenset()) -> ReachResult:
     t0 = time.perf_counter()
     depth = {P.init: 0}
     parent: Dict[State, Tuple[Optional[State], Optional[str]]] = {P.init: (None, None)}
@@ -190,7 +198,7 @@ def reach(P: Problem, g1=True, g2=True, g3=True, max_states: int = 2_000_000) ->
     truncated = False
     while q:
         s = q.popleft()
-        for name, t in successors(P, s, g1, g2, g3):
+        for name, t in successors(P, s, g1, g2, g3, skip):
             if t not in depth:
                 if len(depth) >= max_states:
                     truncated = True

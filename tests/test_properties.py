@@ -219,6 +219,67 @@ class TestCooldown(unittest.TestCase):
                     self.assertGreaterEqual(ticks, (max(d_thr, d_crit) - 1) * delta if max(d_thr, d_crit) else 0)
 
 
+def ref_reach(inst, traces):
+    pol0 = initial_policy(inst)
+    seen = {pol0.key(): pol0}
+    edges = []
+    frontier = [pol0]
+    while frontier:
+        nxt = []
+        for p in frontier:
+            for name, q in ref_successors(inst, p, traces=traces):
+                edges.append((p, name, q))
+                if q.key() not in seen:
+                    seen[q.key()] = q
+                    nxt.append(q)
+        frontier = nxt
+    return seen, edges
+
+
+class TestEvidenceGuard(unittest.TestCase):
+    """(G4) on random instances, in which Loose is entrenched in the critical set (Loose subset of Phi_C)."""
+
+    def test_loose_subset_of_floor_crit(self):
+        for seed in SEEDS:
+            inst = small(seed, k_thr=4)
+            loose = {r.name for r in inst.revs if r.d < 0}
+            self.assertLessEqual(loose, inst.floor_crit)
+            self.assertLessEqual(loose, inst.crit0)
+
+    def test_no_loosening_without_trace(self):
+        """Without traces no loosening is ever effective; every effective revision is a tightening."""
+        for seed in SEEDS:
+            inst = small(seed, k_thr=4)
+            _, edges = ref_reach(inst, frozenset())
+            for _, name, _ in edges:
+                self.assertGreater(inst.rev(name).d, 0, f"seed {seed}")
+
+    def test_all_traces_equals_search(self):
+        for seed in SEEDS:
+            inst = small(seed)
+            P = compile_instance(inst)
+            all_traces = frozenset(r.name for r in inst.revs)
+            seen, _ = ref_reach(inst, all_traces)
+            self.assertEqual({state_of(P, inst, p) for p in seen.values()}, set(reach(P).depth), f"seed {seed}")
+
+    def test_compiled_skip_matches_reference_and_is_monotone(self):
+        import random
+        for seed in SEEDS:
+            inst = small(seed)
+            P = compile_instance(inst)
+            rng = random.Random(seed)
+            names = [r.name for r in inst.revs]
+            full = set(reach(P).depth)
+            none = set(reach(P, skip=frozenset(r.name for r in inst.revs if r.name in inst.crit0)).depth)
+            traces = frozenset(n for n in names if rng.random() < 0.5)
+            skip = frozenset(r.name for r in inst.revs if r.name in inst.crit0 and r.name not in traces)
+            part = set(reach(P, skip=skip).depth)
+            seen, _ = ref_reach(inst, traces)
+            self.assertEqual({state_of(P, inst, p) for p in seen.values()}, part, f"seed {seed}")
+            self.assertLessEqual(none, part)
+            self.assertLessEqual(part, full)
+
+
 class TestTractableFragment(unittest.TestCase):
     def test_non_reflexive_reach_equals_safe_set(self):
         """Without meta-level targets every safe policy is reachable."""

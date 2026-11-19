@@ -90,6 +90,10 @@ def generate(L: int = 5, k_thr: int = 4, k_crit: int = 1, n_phys: int = 3, n_src
     loose_crit = {r.target for r in revs if r.kind == "crit" and r.d < 0}
     floor_crit = frozenset(z for z in crit_targets if rng.random() < p_floor)
     crit0 = frozenset(floor_crit | {z for z in crit_targets if rng.random() < 0.5})
+    # (G2): every loosening revision action is entrenched in the critical set (Loose subset of Phi_C)
+    loose_names = frozenset(r.name for r in revs if r.d < 0)
+    floor_crit |= loose_names
+    crit0 |= loose_names
 
     inst = Instance(L=L, phys=phys, mental=mental, contents=contents, revs=revs,
                     agents=agents, trust=trust, theta0=theta, floor=floor,

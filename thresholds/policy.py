@@ -150,10 +150,14 @@ def authorised(inst: Instance, pol: Policy, rev: Rev) -> bool:
     return pol.theta[f"A:{rev.name}"] <= inst.maxtrust(rev.name)
 
 
-def ref_successors(inst: Instance, pol: Policy, guards: Iterable[str] = ("G1", "G2", "G3")) -> List[Tuple[str, Policy]]:
+def ref_successors(inst: Instance, pol: Policy, guards: Iterable[str] = ("G1", "G2", "G3"),
+                   traces: Optional[FrozenSet[str]] = None) -> List[Tuple[str, Policy]]:
+    """Successor policies; if ``traces`` is given, (G4) is enforced with that set of available traces."""
     out = []
     for r in inst.revs:
         if not authorised(inst, pol, r):
+            continue
+        if traces is not None and r.name in pol.crit and r.name not in traces:
             continue
         new = apply_rev(inst, pol, r)
         if new is None or not is_safe(inst, new, guards):
